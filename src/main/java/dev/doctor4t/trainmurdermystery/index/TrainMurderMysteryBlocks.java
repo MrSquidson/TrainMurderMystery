@@ -138,7 +138,7 @@ public interface TrainMurderMysteryBlocks {
     Block DARK_STEEL_VENT_SHAFT = registrar.createWithItem("dark_steel_vent_shaft", new VentShaftBlock(AbstractBlock.Settings.copy(STAINLESS_STEEL_VENT_SHAFT)), TrainMurderMysteryItems.DECORATION_GROUP);
     Block TARNISHED_GOLD_VENT_SHAFT = registrar.createWithItem("tarnished_gold_vent_shaft", new VentShaftBlock(AbstractBlock.Settings.copy(STAINLESS_STEEL_VENT_SHAFT)), TrainMurderMysteryItems.DECORATION_GROUP);
     // Furniture / Decor
-    Block STAINLESS_STEEL_LADDER = registrar.createWithItem("stainless_steel_ladder", new LadderBlock(AbstractBlock.Settings.create().nonOpaque().strength(0.5f).sounds(BlockSoundGroup.LANTERN)), TrainMurderMysteryItems.DECORATION_GROUP);
+    Block STAINLESS_STEEL_LADDER = registrar.createWithItem("stainless_steel_ladder", new TrainLadderBlock(AbstractBlock.Settings.create().nonOpaque().strength(0.5f).sounds(BlockSoundGroup.LANTERN)), TrainMurderMysteryItems.DECORATION_GROUP);
     Block OAK_BRANCH = createBranch("oak_branch", Blocks.OAK_WOOD, registrar);
     Block SPRUCE_BRANCH = createBranch("spruce_branch", Blocks.SPRUCE_WOOD, registrar);
     Block BIRCH_BRANCH = createBranch("birch_branch", Blocks.BIRCH_WOOD, registrar);
