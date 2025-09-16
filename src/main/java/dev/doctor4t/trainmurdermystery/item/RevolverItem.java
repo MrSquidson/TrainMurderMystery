@@ -6,6 +6,7 @@ import dev.doctor4t.trainmurdermystery.block_entity.SmallDoorBlockEntity;
 import dev.doctor4t.trainmurdermystery.client.TrainMurderMysteryClient;
 import dev.doctor4t.trainmurdermystery.client.particle.HandParticle;
 import dev.doctor4t.trainmurdermystery.entity.PlayerBodyEntity;
+import dev.doctor4t.trainmurdermystery.game.GameLoop;
 import dev.doctor4t.trainmurdermystery.index.TMMDataComponentTypes;
 import dev.doctor4t.trainmurdermystery.index.TrainMurderMysteryEntities;
 import dev.doctor4t.trainmurdermystery.index.TrainMurderMysterySounds;
@@ -53,19 +54,11 @@ public class RevolverItem extends Item {
             if (bullets > 0) {
                 world.playSound(null, user.getX(), user.getEyeY(), user.getZ(), TrainMurderMysterySounds.ITEM_REVOLVER_SHOOT, SoundCategory.PLAYERS, 5f, 1f + world.random.nextFloat() * .1f - .05f);
                 user.getItemCooldownManager().set(this, 20);
-                stackInHand.set(TMMDataComponentTypes.BULLETS, bullets-1);
+                if (!user.isCreative()) stackInHand.set(TMMDataComponentTypes.BULLETS, bullets-1);
 
                 HitResult collision = ProjectileUtil.getCollision(user, entity -> entity.isAlive() && entity.isAttackable(), 20f);
                 if (collision instanceof EntityHitResult entityHitResult && entityHitResult.getEntity() instanceof PlayerEntity killedPlayer && TrainMurderMystery.shouldRestrictPlayerOptions(killedPlayer)) {
-                    killedPlayer.damage(user.getWorld().getDamageSources().genericKill(), 9999999f);
-
-                    PlayerBodyEntity body = TrainMurderMysteryEntities.PLAYER_BODY.create(world);
-                    body.setPlayerUuid(killedPlayer.getUuid());
-
-                    body.refreshPositionAndAngles(killedPlayer.getX(), killedPlayer.getY(), killedPlayer.getZ(), killedPlayer.getHeadYaw(), 0f);
-                    body.setYaw(killedPlayer.getHeadYaw());
-                    body.setHeadYaw(killedPlayer.getHeadYaw());
-                    killedPlayer.getWorld().spawnEntity(body);
+                    GameLoop.killPlayer(killedPlayer, true);
                 }
                 return TypedActionResult.consume(user.getStackInHand(hand));
             } else {

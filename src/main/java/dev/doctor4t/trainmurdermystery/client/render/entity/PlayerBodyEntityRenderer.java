@@ -1,5 +1,6 @@
 package dev.doctor4t.trainmurdermystery.client.render.entity;
 
+import dev.doctor4t.ratatouille.client.lib.render.helpers.Easing;
 import dev.doctor4t.trainmurdermystery.TrainMurderMystery;
 import dev.doctor4t.trainmurdermystery.client.TrainMurderMysteryClient;
 import dev.doctor4t.trainmurdermystery.client.model.TrainMurderMysteryEntityModelLayers;
@@ -14,7 +15,6 @@ import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.RotationAxis;
 
 public class PlayerBodyEntityRenderer<T extends LivingEntity, M extends EntityModel<T>> extends LivingEntityRenderer<PlayerBodyEntity, PlayerEntityModel<PlayerBodyEntity>> {
@@ -62,14 +62,15 @@ public class PlayerBodyEntityRenderer<T extends LivingEntity, M extends EntityMo
 
     @Override
     protected void setupTransforms(PlayerBodyEntity entity, MatrixStack matrices, float animationProgress, float bodyYaw, float tickDelta, float scale) {
-        int animTickEnd = 6;
-        float animProgress = Math.min(entity.age + tickDelta, animTickEnd) / animTickEnd;
+        int animTickEnd = 20;
+        float t = Math.min(entity.age + tickDelta, animTickEnd) / animTickEnd;
+        float animProgress = Easing.BOUNCE_OUT.ease(t, 0, 1, 1);
 
         matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(90 - bodyYaw));
+        matrices.translate(1F, 0f, 0f);
         matrices.translate(0F, animProgress * 0.15f, 0F);
         matrices.multiply(RotationAxis.POSITIVE_Z.rotationDegrees(animProgress * this.getLyingAngle(entity)));
         matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(90.0F));
-//        matrices.translate(0F, -.95f, 0F);
     }
 
     @Override

@@ -3,6 +3,7 @@ package dev.doctor4t.trainmurdermystery.item;
 import dev.doctor4t.trainmurdermystery.TrainMurderMystery;
 import dev.doctor4t.trainmurdermystery.entity.PlayerBodyEntity;
 import dev.doctor4t.trainmurdermystery.game.GameConstants;
+import dev.doctor4t.trainmurdermystery.game.GameLoop;
 import dev.doctor4t.trainmurdermystery.index.TrainMurderMysteryEntities;
 import dev.doctor4t.trainmurdermystery.index.TrainMurderMysterySounds;
 import net.minecraft.entity.LivingEntity;
@@ -32,15 +33,7 @@ public class KnifeItem extends Item {
         if (remainingUseTicks < getMaxUseTime(stack, user) - 10 && user instanceof PlayerEntity attacker) {
             HitResult collision = ProjectileUtil.getCollision(attacker, entity -> entity.isAlive() && entity.isAttackable(), 2f);
             if (collision instanceof EntityHitResult entityHitResult && entityHitResult.getEntity() instanceof PlayerEntity killedPlayer && TrainMurderMystery.shouldRestrictPlayerOptions(killedPlayer)) {
-                killedPlayer.damage(attacker.getWorld().getDamageSources().genericKill(), 9999999f);
-
-                PlayerBodyEntity body = TrainMurderMysteryEntities.PLAYER_BODY.create(world);
-                body.setPlayerUuid(killedPlayer.getUuid());
-
-                body.refreshPositionAndAngles(killedPlayer.getX(), killedPlayer.getY(), killedPlayer.getZ(), killedPlayer.getHeadYaw(), 0f);
-                body.setYaw(killedPlayer.getHeadYaw());
-                body.setHeadYaw(killedPlayer.getHeadYaw());
-                killedPlayer.getWorld().spawnEntity(body);
+                GameLoop.killPlayer(killedPlayer, true);
 
                 user.swingHand(Hand.MAIN_HAND);
                 killedPlayer.playSound(TrainMurderMysterySounds.ITEM_KNIFE_STAB, 1.0f, 1.0f);
