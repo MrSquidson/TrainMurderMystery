@@ -1,5 +1,6 @@
 package dev.doctor4t.trainmurdermystery.client.util;
 
+import dev.doctor4t.trainmurdermystery.client.TMMClient;
 import net.minecraft.client.render.Frustum;
 import net.minecraft.util.math.Box;
 import org.joml.Matrix4f;
@@ -15,6 +16,6 @@ public class AlwaysVisibleFrustum extends Frustum {
 
     @Override
     public boolean isVisible(Box box) {
-        return true;
+        return super.isVisible(box) || TMMClient.isTrainMoving();
     }
 }

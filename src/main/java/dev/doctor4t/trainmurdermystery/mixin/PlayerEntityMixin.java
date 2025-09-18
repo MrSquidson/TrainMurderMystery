@@ -43,7 +43,7 @@ public abstract class PlayerEntityMixin extends LivingEntity {
 
     @Inject(method = "tickMovement", at = @At("HEAD"))
     public void tmm$limitSprint(CallbackInfo ci) {
-        if (TMMGameLoop.isPlayerAliveAndSurvival((PlayerEntity) (Object) this) && (TMMGameLoop.gameComponent != null && TMMGameLoop.gameComponent.getHitmen().contains(this.getUuid()))) {
+        if (TMMGameLoop.isPlayerAliveAndSurvival((PlayerEntity) (Object) this) && !(TMMGameLoop.gameComponent != null && TMMGameLoop.gameComponent.getHitmen().contains(this.getUuid()))) {
             if (this.isSprinting()) {
                 sprintingTicks = Math.max(sprintingTicks - 1, 0);
             } else {

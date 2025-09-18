@@ -17,6 +17,8 @@ public class WorldGameComponent implements AutoSyncedComponent {
     private final World world;
 
     private boolean running = false;
+    private int gameTime = 0;
+
     private List<UUID> players = new ArrayList<>();
     private List<UUID> hitmen = new ArrayList<>();
     private List<UUID> detectives = new ArrayList<>();
@@ -37,6 +39,19 @@ public class WorldGameComponent implements AutoSyncedComponent {
 
     public void stop() {
         this.setRunning(false);
+        this.sync();
+    }
+
+    public int getGameTime() {
+        return gameTime;
+    }
+
+    public void setGameTime(int gameTime) {
+        this.gameTime = gameTime;
+    }
+
+    public void incrementGameTime() {
+        this.gameTime++;
         this.sync();
     }
 
@@ -106,6 +121,8 @@ public class WorldGameComponent implements AutoSyncedComponent {
     public void readFromNbt(NbtCompound nbtCompound, RegistryWrapper.WrapperLookup wrapperLookup) {
         this.running = nbtCompound.getBoolean("Running");
 
+        this.gameTime = nbtCompound.getInt("GameTime");
+
         this.setTargets(uuidListFromNbt(nbtCompound, "Targets"));
         this.setHitmen(uuidListFromNbt(nbtCompound, "Hitmen"));
         this.setDetectives(uuidListFromNbt(nbtCompound, "Detectives"));
@@ -123,6 +140,8 @@ public class WorldGameComponent implements AutoSyncedComponent {
     public void writeToNbt(NbtCompound nbtCompound, RegistryWrapper.WrapperLookup wrapperLookup) {
         nbtCompound.putBoolean("Running", running);
 
+        nbtCompound.putInt("GameTime", gameTime);
+
         nbtCompound.put("Targets", nbtFromUuidList(getTargets()));
         nbtCompound.put("Hitmen", nbtFromUuidList(getHitmen()));
         nbtCompound.put("Detectives", nbtFromUuidList(getDetectives()));
@@ -135,4 +154,5 @@ public class WorldGameComponent implements AutoSyncedComponent {
         }
         return ret;
     }
+
 }

@@ -41,50 +41,54 @@ public class TMMGameLoop {
     public static WorldTrainComponent trainComponent;
 
     public static void tick(ServerWorld serverWorld) {
-        gameComponent = TMMComponents.GAME.get(serverWorld);
-        trainComponent = TMMComponents.TRAIN.get(serverWorld);
+        if (serverWorld.getServer().getOverworld().equals(serverWorld)) {
+            gameComponent = TMMComponents.GAME.get(serverWorld);
+            trainComponent = TMMComponents.TRAIN.get(serverWorld);
 
-        if (trainComponent.getTrainSpeed() > 0) {
-            for (ServerPlayerEntity player : serverWorld.getPlayers()) {
-                // spectator limits
-                if (!isPlayerAliveAndSurvival(player)) {
-                    limitPlayerToBox(player, TMMGameConstants.PLAY_AREA);
-                }
-            }
-        }
-
-        if (gameComponent.isRunning()) {
-            // kill players who fell off the train
-            for (ServerPlayerEntity player : serverWorld.getPlayers()) {
-                if (isPlayerAliveAndSurvival(player) && player.getY() < TMMGameConstants.PLAY_AREA.minY) {
-                    killPlayer(player, false);
-                }
-            }
-
-            // check hitman win condition (all targets are dead)
-            WinStatus winStatus = WinStatus.HITMEN;
-            for (UUID player : gameComponent.getTargets()) {
-                if (!isPlayerEliminated(serverWorld.getPlayerByUuid(player))) {
-                    winStatus = WinStatus.NONE;
-                }
-            }
-
-            // check passenger win condition (all hitmen are dead)
-            if (winStatus == WinStatus.NONE) {
-                winStatus = WinStatus.PASSENGERS;
-                for (UUID player : gameComponent.getHitmen()) {
-                    if (!isPlayerEliminated(serverWorld.getPlayerByUuid(player))) {
-                        winStatus = WinStatus.NONE;
+            if (trainComponent.getTrainSpeed() > 0) {
+                for (ServerPlayerEntity player : serverWorld.getPlayers()) {
+                    // spectator limits
+                    if (!isPlayerAliveAndSurvival(player)) {
+                        limitPlayerToBox(player, TMMGameConstants.PLAY_AREA);
                     }
                 }
             }
 
-            // win display
-            if (winStatus != WinStatus.NONE) {
+            if (gameComponent.isRunning()) {
+                gameComponent.incrementGameTime();
+
+                // kill players who fell off the train
                 for (ServerPlayerEntity player : serverWorld.getPlayers()) {
-                    player.sendMessage(Text.translatable("game.win." + winStatus.name().toLowerCase(Locale.ROOT)), true);
+                    if (isPlayerAliveAndSurvival(player) && player.getY() < TMMGameConstants.PLAY_AREA.minY) {
+                        killPlayer(player, false);
+                    }
                 }
-                gameComponent.stop();
+
+                // check hitman win condition (all targets are dead)
+                WinStatus winStatus = WinStatus.HITMEN;
+                for (UUID player : gameComponent.getTargets()) {
+                    if (!isPlayerEliminated(serverWorld.getPlayerByUuid(player))) {
+                        winStatus = WinStatus.NONE;
+                    }
+                }
+
+                // check passenger win condition (all hitmen are dead)
+                if (winStatus == WinStatus.NONE) {
+                    winStatus = WinStatus.PASSENGERS;
+                    for (UUID player : gameComponent.getHitmen()) {
+                        if (!isPlayerEliminated(serverWorld.getPlayerByUuid(player))) {
+                            winStatus = WinStatus.NONE;
+                        }
+                    }
+                }
+
+                // win display
+                if (winStatus != WinStatus.NONE) {
+                    for (ServerPlayerEntity player : serverWorld.getPlayers()) {
+                        player.sendMessage(Text.translatable("game.win." + winStatus.name().toLowerCase(Locale.ROOT)), true);
+                    }
+                    gameComponent.stop();
+                }
             }
         }
     }
@@ -137,15 +141,12 @@ public class TMMGameLoop {
         world.getServer().setDifficulty(Difficulty.PEACEFUL, true);
         world.setTimeOfDay(18000);
 
-        // reset train
-        resetTrain(world);
-
-        // discard all player bodies
-        for (PlayerBodyEntity body : world.getEntitiesByType(TMMEntities.PLAYER_BODY, playerBodyEntity -> true)) {
-            body.discard();
+        // Teleport players to play area
+        List<ServerPlayerEntity> playerPool = world.getPlayers(serverPlayerEntity -> !serverPlayerEntity.isInCreativeMode() && !serverPlayerEntity.isSpectator() && TMMGameConstants.READY_AREA.contains(serverPlayerEntity.getPos()));
+        for (ServerPlayerEntity player : playerPool) {
+            Vec3d pos = player.getPos().add(Vec3d.of(TMMGameConstants.PLAY_POS.subtract(BlockPos.ofFloored(TMMGameConstants.READY_AREA.getMinPos()))));
+            player.requestTeleport(pos.getX(), pos.getY(), pos.getZ());
         }
-
-        List<ServerPlayerEntity> playerPool = new ArrayList<>(world.getPlayers().stream().filter(serverPlayerEntity -> !serverPlayerEntity.isInCreativeMode() && !serverPlayerEntity.isSpectator()).toList());
 
         // limit the game to 14 players, put players 15 to n in spectator mode
         Collections.shuffle(playerPool);
@@ -236,6 +237,14 @@ public class TMMGameLoop {
                     }
             );
             player.giveItemStack(letter);
+        }
+
+        // reset train
+        resetTrain(world);
+
+        // discard all player bodies
+        for (PlayerBodyEntity body : world.getEntitiesByType(TMMEntities.PLAYER_BODY, playerBodyEntity -> true)) {
+            body.discard();
         }
 
         gameComponent.start();
