@@ -6,8 +6,10 @@ import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import dev.doctor4t.trainmurdermystery.TMM;
 import dev.doctor4t.trainmurdermystery.cca.PlayerMoodComponent;
 import dev.doctor4t.trainmurdermystery.client.TMMClient;
+import dev.doctor4t.trainmurdermystery.client.gui.CrosshairRenderer;
+import dev.doctor4t.trainmurdermystery.client.gui.MoodRenderer;
+import dev.doctor4t.trainmurdermystery.client.gui.RoleNameRenderer;
 import dev.doctor4t.trainmurdermystery.game.TMMGameConstants;
-import dev.doctor4t.trainmurdermystery.game.TMMGameLoop;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.hud.InGameHud;
@@ -18,6 +20,7 @@ import net.minecraft.util.math.MathHelper;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -27,14 +30,27 @@ import java.awt.*;
 @Mixin(InGameHud.class)
 public class InGameHudMixin {
     @Shadow @Final private MinecraftClient client;
-    private static final Identifier TMM_HOTBAR_TEXTURE = TMM.id("hud/hotbar");
-    private static final Identifier TMM_HOTBAR_SELECTION_TEXTURE = TMM.id("hud/hotbar_selection");
+    @Unique private static final Identifier TMM_HOTBAR_TEXTURE = TMM.id("hud/hotbar");
+    @Unique private static final Identifier TMM_HOTBAR_SELECTION_TEXTURE = TMM.id("hud/hotbar_selection");
 
     @Inject(method = "renderMainHud", at = @At("TAIL"))
-    private void tmm$renderMood(DrawContext context, RenderTickCounter tickCounter, CallbackInfo ci) {
+    private void tmm$renderHud(DrawContext context, RenderTickCounter tickCounter, CallbackInfo ci) {
         var player = this.client.player;
         if (player == null) return;
-        PlayerMoodComponent.KEY.get(player).renderHud(context, tickCounter);
+        var renderer = MinecraftClient.getInstance().textRenderer;
+        if (TMMClient.isPlayerAliveAndInSurvival()) MoodRenderer.renderHud(player, renderer, context, tickCounter);
+        RoleNameRenderer.renderHud(renderer, player, context, tickCounter);
+    }
+
+    @WrapMethod(method = "renderCrosshair")
+    private void tmm$renderHud(DrawContext context, RenderTickCounter tickCounter, Operation<Void> original) {
+        if (!TMMClient.isPlayerAliveAndInSurvival()) {
+            original.call(context, tickCounter);
+            return;
+        }
+        var player = this.client.player;
+        if (player == null) return;
+        CrosshairRenderer.renderCrosshair(this.client, player, context, tickCounter);
     }
 
     @WrapMethod(method = "renderStatusBars")

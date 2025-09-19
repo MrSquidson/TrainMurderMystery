@@ -4,16 +4,10 @@ import dev.doctor4t.trainmurdermystery.TMM;
 import dev.doctor4t.trainmurdermystery.game.TMMGameConstants;
 import dev.doctor4t.trainmurdermystery.game.TMMGameLoop;
 import dev.doctor4t.trainmurdermystery.util.Carriage;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.render.RenderTickCounter;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.math.MathHelper;
 import org.jetbrains.annotations.NotNull;
 import org.ladysnake.cca.api.v3.component.ComponentKey;
 import org.ladysnake.cca.api.v3.component.ComponentRegistry;
@@ -21,25 +15,15 @@ import org.ladysnake.cca.api.v3.component.sync.AutoSyncedComponent;
 import org.ladysnake.cca.api.v3.component.tick.ClientTickingComponent;
 import org.ladysnake.cca.api.v3.component.tick.ServerTickingComponent;
 
-import java.util.Objects;
-
 public class PlayerMoodComponent implements AutoSyncedComponent, ServerTickingComponent, ClientTickingComponent {
     public static final Identifier MOOD = TMM.id("mood");
     public static final ComponentKey<PlayerMoodComponent> KEY = ComponentRegistry.getOrCreate(MOOD, PlayerMoodComponent.class);
-    public static final Identifier ARROW_UP = TMM.id("hud/arrow_up");
-    public static final Identifier ARROW_DOWN = TMM.id("hud/arrow_down");
-    public static final Identifier MOOD_HAPPY = TMM.id("hud/mood_happy");
-    public static final Identifier MOOD_MID = TMM.id("hud/mood_mid");
-    public static final Identifier MOOD_DEPRESSIVE = TMM.id("hud/mood_depressive");
     private final PlayerEntity player;
     private TrainPreference currentPreference = TrainPreference.TRUE;
     private int nextPreferenceTimer = 0;
     public float mood = 1f;
-    private boolean fulfilled = false;
-    private String previousPreferenceText = "";
-    private String preferenceText = "";
-    private float preferenceTextAlpha = 0f;
-    private float arrowProgress = 1f;
+    public boolean fulfilled = false;
+    public String preferenceText = "";
 
     public PlayerMoodComponent(PlayerEntity player) {
         this.player = player;
@@ -47,46 +31,6 @@ public class PlayerMoodComponent implements AutoSyncedComponent, ServerTickingCo
 
     public void sync() {
         KEY.sync(this.player);
-    }
-
-    @Environment(EnvType.CLIENT)
-    public void renderHud(DrawContext context, RenderTickCounter tickCounter) {
-        if (!TMMComponents.GAME.get(this.player.getWorld()).isRunning()) return;
-        if (!TMMGameLoop.isPlayerAliveAndSurvival(this.player)) return;
-        if (!Objects.equals(this.previousPreferenceText, this.preferenceText)) {
-            this.preferenceTextAlpha = MathHelper.lerp(tickCounter.getTickDelta(true) / 4, this.preferenceTextAlpha, 0f);
-            if (this.preferenceTextAlpha <= 0.01f) this.previousPreferenceText = this.preferenceText;
-        } else {
-            this.preferenceTextAlpha = MathHelper.lerp(tickCounter.getTickDelta(true) / 4, this.preferenceTextAlpha, 1f);
-        }
-        if (this.previousPreferenceText.isEmpty()) return;
-        var renderer = MinecraftClient.getInstance().textRenderer;
-        var textWidth = renderer.getWidth(this.previousPreferenceText);
-        context.getMatrices().push();
-        context.getMatrices().translate(-(24 + textWidth) * (1f - this.preferenceTextAlpha), 0, 0);
-        var mood = MOOD_HAPPY;
-        if (this.mood < 0.2f) {
-            mood = MOOD_DEPRESSIVE;
-        } else if (this.mood < 0.55f) {
-            mood = MOOD_MID;
-        }
-        context.drawGuiTexture(mood, 5, 6, 14, 17);
-        this.arrowProgress = MathHelper.lerp(tickCounter.getTickDelta(true) / 16, this.arrowProgress, 1f);
-        if (this.arrowProgress < 0.99f) {
-            var arrow = this.fulfilled ? ARROW_UP : ARROW_DOWN;
-            context.getMatrices().push();
-            context.getMatrices().translate(0, this.fulfilled ? 4 - this.arrowProgress * 4 : this.arrowProgress * 4, 0);
-            context.drawSprite(7, 6, 0, 10, 13, context.guiAtlasManager.getSprite(arrow), 1f, 1f, 1f, (float) Math.sin(this.arrowProgress * Math.PI));
-            context.getMatrices().pop();
-        }
-        context.drawTextWithShadow(renderer, this.previousPreferenceText, 22, 8, MathHelper.packRgb(1f, 1f, 1f) | ((int) (this.preferenceTextAlpha * 255) << 24));
-        context.getMatrices().pop();
-        context.getMatrices().push();
-        context.getMatrices().translate(26, 10 + renderer.fontHeight, 0);
-        context.getMatrices().translate(-(24 + textWidth) * (1f - this.preferenceTextAlpha), 0, 0);
-        context.getMatrices().scale((textWidth - 8) * this.mood, 1, 1);
-        context.fill(0, 0, 1, 1, MathHelper.hsvToRgb(this.mood / 3.0F, 1.0F, 1.0F) | ((int) (this.preferenceTextAlpha * 255) << 24));
-        context.getMatrices().pop();
     }
 
     public void reset() {
@@ -101,7 +45,6 @@ public class PlayerMoodComponent implements AutoSyncedComponent, ServerTickingCo
     public void clientTick() {
         if (!TMMComponents.GAME.get(this.player.getWorld()).isRunning()) return;
         this.tickMood();
-        if (this.player.age % 80 == 0) this.arrowProgress = 0f;
     }
 
     @Override

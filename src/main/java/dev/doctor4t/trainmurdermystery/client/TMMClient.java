@@ -7,6 +7,7 @@ import dev.doctor4t.ratatouille.client.util.ambience.BackgroundAmbience;
 import dev.doctor4t.trainmurdermystery.TMM;
 import dev.doctor4t.trainmurdermystery.cca.TMMComponents;
 import dev.doctor4t.trainmurdermystery.cca.WorldGameComponent;
+import dev.doctor4t.trainmurdermystery.client.gui.MoodRenderer;
 import dev.doctor4t.trainmurdermystery.client.model.TrainMurderMysteryEntityModelLayers;
 import dev.doctor4t.trainmurdermystery.client.render.block_entity.SmallDoorBlockEntityRenderer;
 import dev.doctor4t.trainmurdermystery.client.render.block_entity.WheelBlockEntityRenderer;
@@ -14,6 +15,7 @@ import dev.doctor4t.trainmurdermystery.client.util.TMMItemTooltips;
 import dev.doctor4t.trainmurdermystery.game.TMMGameLoop;
 import dev.doctor4t.trainmurdermystery.index.*;
 import dev.doctor4t.trainmurdermystery.util.HandParticleManager;
+import dev.doctor4t.trainmurdermystery.util.KnifeStabPayload;
 import dev.doctor4t.trainmurdermystery.util.MatrixParticleManager;
 import dev.doctor4t.trainmurdermystery.util.ShootMuzzleS2CPayload;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
@@ -148,6 +150,8 @@ public class TMMClient implements ClientModInitializer {
         ClientTickEvents.START_WORLD_TICK.register(clientWorld -> {
             trainSpeed = TMMComponents.TRAIN.get(clientWorld).getTrainSpeed();
             GAME_COMPONENT = TMMComponents.GAME.get(clientWorld);
+            var player = MinecraftClient.getInstance().player;
+            if (player != null && player.age % 80 == 0) MoodRenderer.arrowProgress = 0f;
         });
 
         // Lock options
@@ -186,25 +190,7 @@ public class TMMClient implements ClientModInitializer {
             TMMClient.handParticleManager.tick();
         });
 
-        ClientPlayNetworking.registerGlobalReceiver(ShootMuzzleS2CPayload.ID, (payload, context) -> {
-            MinecraftClient client = MinecraftClient.getInstance();
-            client.execute(() -> {
-                PlayerEntity shooter = client.world.getPlayerByUuid(UUID.fromString(payload.shooterId()));
-                if (shooter != null) {
-                    if (shooter.getUuid() == client.player.getUuid() &&
-                            client.options.getPerspective() == Perspective.FIRST_PERSON) return;
-
-                    Vec3d muzzlePos = MatrixParticleManager.getMuzzlePosForPlayer(shooter);
-                    if (muzzlePos != null) {
-                        client.world.addParticle(
-                                TMMParticles.GUNSHOT,
-                                muzzlePos.x, muzzlePos.y, muzzlePos.z,
-                                0, 0, 0
-                        );
-                    }
-                }
-            });
-        });
+        ClientPlayNetworking.registerGlobalReceiver(ShootMuzzleS2CPayload.ID, new ShootMuzzleS2CPayload.Receiver());
 
         // Instinct keybind
         instinctKeybind = KeyBindingHelper.registerKeyBinding(new KeyBinding(

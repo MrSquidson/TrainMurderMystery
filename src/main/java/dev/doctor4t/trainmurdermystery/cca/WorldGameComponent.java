@@ -122,6 +122,14 @@ public class WorldGameComponent implements AutoSyncedComponent {
         return !this.hitmen.contains(player.getUuid()) && !this.detectives.contains(player.getUuid());
     }
 
+    public boolean isHitman(@NotNull PlayerEntity player) {
+        return this.hitmen.contains(player.getUuid());
+    }
+
+    public boolean isDetective(@NotNull PlayerEntity player) {
+        return this.detectives.contains(player.getUuid());
+    }
+
     public void resetLists() {
         setDetectives(new ArrayList<>());
         setHitmen(new ArrayList<>());

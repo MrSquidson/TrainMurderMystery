@@ -1,8 +1,9 @@
 package dev.doctor4t.trainmurdermystery.item;
 
-import dev.doctor4t.trainmurdermystery.game.TMMGameConstants;
 import dev.doctor4t.trainmurdermystery.game.TMMGameLoop;
 import dev.doctor4t.trainmurdermystery.index.TMMSounds;
+import dev.doctor4t.trainmurdermystery.util.KnifeStabPayload;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.projectile.ProjectileUtil;
@@ -14,10 +15,33 @@ import net.minecraft.util.UseAction;
 import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.hit.HitResult;
 import net.minecraft.world.World;
+import org.jetbrains.annotations.NotNull;
 
 public class KnifeItem extends Item {
     public KnifeItem(Settings settings) {
         super(settings);
+    }
+
+    @Override
+    public void onStoppedUsing(ItemStack stack, World world, LivingEntity user, int remainingUseTicks) {
+        if (remainingUseTicks >= this.getMaxUseTime(stack, user) - 10 || !(user instanceof PlayerEntity attacker) || !world.isClient) return;
+        var collision = getKnifeTarget(attacker);
+        if (collision instanceof EntityHitResult entityHitResult) {
+            var target = entityHitResult.getEntity();
+            ClientPlayNetworking.send(new KnifeStabPayload(target.getId()));
+        }
+    }
+
+    public static HitResult getKnifeTarget(PlayerEntity user) {
+        return ProjectileUtil.getCollision(user, entity -> entity instanceof PlayerEntity player && TMMGameLoop.isPlayerAliveAndSurvival(player), 2f);
+    }
+
+    @Override
+    public TypedActionResult<ItemStack> use(World world, @NotNull PlayerEntity user, Hand hand) {
+        var itemStack = user.getStackInHand(hand);
+        user.setCurrentHand(hand);
+        user.playSound(TMMSounds.ITEM_KNIFE_PREPARE, 1.0f, 1.0f);
+        return TypedActionResult.consume(itemStack);
     }
 
     @Override
@@ -26,29 +50,7 @@ public class KnifeItem extends Item {
     }
 
     @Override
-    public void onStoppedUsing(ItemStack stack, World world, LivingEntity user, int remainingUseTicks) {
-        if (remainingUseTicks < getMaxUseTime(stack, user) - 10 && user instanceof PlayerEntity attacker) {
-            HitResult collision = ProjectileUtil.getCollision(attacker, entity -> entity.isAlive() && entity.isAttackable(), 2f);
-            if (collision instanceof EntityHitResult entityHitResult && entityHitResult.getEntity() instanceof PlayerEntity killedPlayer && TMMGameLoop.isPlayerAliveAndSurvival(killedPlayer)) {
-                TMMGameLoop.killPlayer(killedPlayer, true);
-
-                user.swingHand(Hand.MAIN_HAND);
-                killedPlayer.playSound(TMMSounds.ITEM_KNIFE_STAB, 1.0f, 1.0f);
-                if (!attacker.isCreative()) attacker.getItemCooldownManager().set(this, TMMGameConstants.KNIFE_COOLDOWN);
-            }
-        }
-    }
-
-    @Override
     public int getMaxUseTime(ItemStack stack, LivingEntity user) {
         return 72000;
-    }
-
-    @Override
-    public TypedActionResult<ItemStack> use(World world, PlayerEntity user, Hand hand) {
-        ItemStack itemStack = user.getStackInHand(hand);
-        user.setCurrentHand(hand);
-        user.playSound(TMMSounds.ITEM_KNIFE_PREPARE, 1.0f, 1.0f);
-        return TypedActionResult.consume(itemStack);
     }
 }
