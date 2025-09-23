@@ -2,9 +2,15 @@ package dev.doctor4t.trainmurdermystery.cca;
 
 import dev.doctor4t.trainmurdermystery.TMM;
 import dev.doctor4t.trainmurdermystery.game.TMMGameConstants;
+import dev.doctor4t.trainmurdermystery.index.TMMSounds;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.network.packet.s2c.play.PlaySoundS2CPacket;
+import net.minecraft.registry.Registries;
 import net.minecraft.registry.RegistryWrapper;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.sound.SoundCategory;
+import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import org.jetbrains.annotations.NotNull;
@@ -39,8 +45,14 @@ public class PlayerStoreComponent implements AutoSyncedComponent, ServerTickingC
         if (this.balance >= entry.price()) {
             if (entry.onBuy(this.player)) {
                 this.balance -= entry.price();
+                if (this.player instanceof ServerPlayerEntity player) {
+                    player.networkHandler.sendPacket(new PlaySoundS2CPacket(Registries.SOUND_EVENT.getEntry(TMMSounds.BUY_ITEM), SoundCategory.PLAYERS, player.getX(), player.getY(), player.getZ(), 1.0f, 0.9f + this.player.getRandom().nextFloat() * 0.2f, player.getRandom().nextLong()));
+                }
             } else {
                 this.player.sendMessage(Text.literal("Purchase Failed").formatted(Formatting.DARK_RED), true);
+                if (this.player instanceof ServerPlayerEntity player) {
+                    player.networkHandler.sendPacket(new PlaySoundS2CPacket(Registries.SOUND_EVENT.getEntry(TMMSounds.BUY_FAIL), SoundCategory.PLAYERS, player.getX(), player.getY(), player.getZ(), 1.0f, 0.9f + this.player.getRandom().nextFloat() * 0.2f, player.getRandom().nextLong()));
+                }
             }
             this.sync();
         }
@@ -56,8 +68,8 @@ public class PlayerStoreComponent implements AutoSyncedComponent, ServerTickingC
 
     }
 
-    public static boolean useBlackout(PlayerEntity player) {
-        return true;
+    public static boolean useBlackout(@NotNull PlayerEntity player) {
+        return WorldBlackoutComponent.KEY.get(player.getWorld()).triggerBlackout();
     }
 
     public static boolean useDisguise(PlayerEntity player) {

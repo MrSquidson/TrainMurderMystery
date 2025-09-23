@@ -90,6 +90,7 @@ public class GameFunctions {
     public static void initializeGame(ServerWorld world) {
         TrainWorldComponent trainComponent = TMMComponents.TRAIN.get(world);
         trainComponent.setTrainSpeed(130);
+        WorldBlackoutComponent.KEY.get(world).reset();
         GameWorldComponent gameComponent = TMMComponents.GAME.get(world);
 
         world.getGameRules().get(GameRules.KEEP_INVENTORY).set(true, world.getServer());
@@ -210,6 +211,7 @@ public class GameFunctions {
     }
 
     public static void finalizeGame(ServerWorld world) {
+        WorldBlackoutComponent.KEY.get(world).reset();
         TrainWorldComponent trainComponent = TMMComponents.TRAIN.get(world);
         trainComponent.setTrainSpeed(0);
         world.setTimeOfDay(6000);

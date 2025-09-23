@@ -19,6 +19,7 @@ public class TMMComponents implements WorldComponentInitializer, EntityComponent
     public void registerWorldComponentFactories(@NotNull WorldComponentFactoryRegistry registry) {
         registry.register(TRAIN, TrainWorldComponent::new);
         registry.register(GAME, GameWorldComponent::new);
+        registry.register(WorldBlackoutComponent.KEY, WorldBlackoutComponent::new);
     }
 
     @Override
