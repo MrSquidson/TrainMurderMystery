@@ -11,7 +11,6 @@ import org.jetbrains.annotations.NotNull;
 import java.util.function.UnaryOperator;
 
 public interface TMMDataComponentTypes {
-    ComponentType<Boolean> POISONED = register("poisoned", booleanBuilder -> booleanBuilder.codec(Codec.BOOL).packetCodec(PacketCodecs.BOOL));
     ComponentType<String> POISONER = register("poisoner", stringBuilder -> stringBuilder.codec(Codec.STRING).packetCodec(PacketCodecs.STRING));
 
     private static <T> ComponentType<T> register(String name, @NotNull UnaryOperator<ComponentType.Builder<T>> builderOperator) {

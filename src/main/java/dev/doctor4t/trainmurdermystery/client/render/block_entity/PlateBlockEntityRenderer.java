@@ -1,53 +1,95 @@
 package dev.doctor4t.trainmurdermystery.client.render.block_entity;
 
-import dev.doctor4t.trainmurdermystery.block_entity.FoodPlatterBlockEntity;
+import dev.doctor4t.trainmurdermystery.block_entity.BeveragePlateBlockEntity;
+import dev.doctor4t.trainmurdermystery.index.TMMBlocks;
 import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.block.entity.BlockEntityRenderer;
 import net.minecraft.client.render.block.entity.BlockEntityRendererFactory;
 import net.minecraft.client.render.item.ItemRenderer;
+import net.minecraft.client.render.model.json.ModelTransformationMode;
 import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.item.ItemStack;
 import net.minecraft.util.math.RotationAxis;
+import org.jetbrains.annotations.NotNull;
 
-public class PlateBlockEntityRenderer implements BlockEntityRenderer<FoodPlatterBlockEntity> {
+public class PlateBlockEntityRenderer implements BlockEntityRenderer<BeveragePlateBlockEntity> {
     private final ItemRenderer itemRenderer;
 
-    public PlateBlockEntityRenderer(BlockEntityRendererFactory.Context ctx) {
+    public PlateBlockEntityRenderer(BlockEntityRendererFactory.@NotNull Context ctx) {
         this.itemRenderer = ctx.getItemRenderer();
     }
 
     @Override
-    public void render(FoodPlatterBlockEntity entity, float tickDelta, MatrixStack matrices, VertexConsumerProvider vertexConsumers, int light, int overlay) {
-        int itemCount = entity.getStoredItems().size();
+    public void render(@NotNull BeveragePlateBlockEntity entity, float tickDelta, MatrixStack matrices, VertexConsumerProvider vertexConsumers, int light, int overlay) {
+        var state = entity.getCachedState();
+        if (state == null) return;
+        if (state.isOf(TMMBlocks.DRINK_TRAY)) {
+            this.renderDrinks(entity, matrices, vertexConsumers, light, overlay);
+        } else if (state.isOf(TMMBlocks.FOOD_PLATTER)) {
+            this.renderFood(entity, matrices, vertexConsumers, light, overlay);
+        }
+    }
+
+    public void renderFood(@NotNull BeveragePlateBlockEntity entity, MatrixStack matrices, VertexConsumerProvider vertexConsumers, int light, int overlay) {
+        var itemCount = entity.getStoredItems().size();
         if (itemCount == 0) return;
 
-        double radius = 0.25;
-        double centerX = 0.5;
-        double centerY = 0.0375;
-        double centerZ = 0.5;
+        var radius = 0.25;
+        var centerX = 0.5;
+        var centerY = 0.0375;
+        var centerZ = 0.5;
 
-        for (int i = 0; i < itemCount; i++) {
-            ItemStack stack = entity.getStoredItems().get(i);
+        for (var i = 0; i < itemCount; i++) {
+            var stack = entity.getStoredItems().get(i);
             if (stack == null) continue;
 
-            double angle = (2 * Math.PI / itemCount) * i;
+            var angle = (2 * Math.PI / itemCount) * i;
 
-            double x = centerX + radius * Math.cos(angle);
-            double z = centerZ + radius * Math.sin(angle);
+            var x = centerX + radius * Math.cos(angle);
+            var z = centerZ + radius * Math.sin(angle);
 
             matrices.push();
 
             matrices.translate(x, centerY, z);
 
-            float rotationDegrees = (float) Math.toDegrees(angle) + 90f;
+            var rotationDegrees = (float) Math.toDegrees(angle) + 90f;
 
             matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(rotationDegrees));
             matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(75f));
             matrices.scale(0.4f, 0.4f, 0.4f);
 
-            itemRenderer.renderItem(stack,
-                    net.minecraft.client.render.model.json.ModelTransformationMode.FIXED,
-                    light, overlay, matrices, vertexConsumers, entity.getWorld(), 0);
+            this.itemRenderer.renderItem(stack, ModelTransformationMode.FIXED, light, overlay, matrices, vertexConsumers, entity.getWorld(), 0);
+            matrices.pop();
+        }
+    }
+
+    public void renderDrinks(@NotNull BeveragePlateBlockEntity entity, MatrixStack matrices, VertexConsumerProvider vertexConsumers, int light, int overlay) {
+        var itemCount = entity.getStoredItems().size();
+        if (itemCount == 0) return;
+
+        var radius = 0.25;
+        var centerX = 0.5;
+        var centerY = 0.225;
+        var centerZ = 0.5;
+
+        for (var i = 0; i < itemCount; i++) {
+            var stack = entity.getStoredItems().get(i);
+            if (stack == null) continue;
+
+            var angle = (2 * Math.PI / itemCount) * i;
+
+            var x = centerX + radius * Math.cos(angle);
+            var z = centerZ + radius * Math.sin(angle);
+
+            matrices.push();
+
+            matrices.translate(x, centerY, z);
+
+            var rotationDegrees = (float) Math.toDegrees(angle) + 90f;
+
+            matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(rotationDegrees));
+            matrices.scale(0.4f, 0.4f, 0.4f);
+
+            this.itemRenderer.renderItem(stack, ModelTransformationMode.FIXED, light, overlay, matrices, vertexConsumers, entity.getWorld(), 0);
 
             matrices.pop();
         }

@@ -13,7 +13,6 @@ import dev.doctor4t.trainmurdermystery.cca.TMMComponents;
 import dev.doctor4t.trainmurdermystery.cca.TrainWorldComponent;
 import dev.doctor4t.trainmurdermystery.client.gui.StoreRenderer;
 import dev.doctor4t.trainmurdermystery.client.model.TMMModelLayers;
-import dev.doctor4t.trainmurdermystery.client.render.block_entity.DrinkPlateBlockEntityRenderer;
 import dev.doctor4t.trainmurdermystery.client.render.block_entity.PlateBlockEntityRenderer;
 import dev.doctor4t.trainmurdermystery.client.render.block_entity.SmallDoorBlockEntityRenderer;
 import dev.doctor4t.trainmurdermystery.client.render.block_entity.WheelBlockEntityRenderer;
@@ -160,12 +159,8 @@ public class TMMClient implements ClientModInitializer {
                 ctx -> new WheelBlockEntityRenderer(TMM.id("textures/entity/wheel.png"), ctx)
         );
         BlockEntityRendererFactories.register(
-                TMMBlockEntities.FOOD_PLATTER,
+                TMMBlockEntities.BEVERAGE_PLATE,
                 PlateBlockEntityRenderer::new
-        );
-        BlockEntityRendererFactories.register(
-                TMMBlockEntities.DRINK_TRAY,
-                DrinkPlateBlockEntityRenderer::new
         );
 
         // Ambience

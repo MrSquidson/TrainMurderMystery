@@ -1,17 +1,19 @@
 package dev.doctor4t.trainmurdermystery.block;
 
 import com.mojang.serialization.MapCodec;
-import dev.doctor4t.trainmurdermystery.block_entity.FoodPlatterBlockEntity;
+import dev.doctor4t.trainmurdermystery.block_entity.BeveragePlateBlockEntity;
 import dev.doctor4t.trainmurdermystery.index.TMMBlockEntities;
 import dev.doctor4t.trainmurdermystery.index.TMMDataComponentTypes;
 import dev.doctor4t.trainmurdermystery.index.TMMItems;
-import net.minecraft.block.*;
+import net.minecraft.block.BlockRenderType;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.BlockWithEntity;
+import net.minecraft.block.ShapeContext;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.entity.BlockEntityTicker;
 import net.minecraft.block.entity.BlockEntityType;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.ItemStack;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.util.ActionResult;
@@ -21,9 +23,8 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.shape.VoxelShape;
 import net.minecraft.world.BlockView;
 import net.minecraft.world.World;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import java.util.List;
 
 public class FoodPlatterBlock extends BlockWithEntity {
     public static final MapCodec<FoodPlatterBlock> CODEC = createCodec(FoodPlatterBlock::new);
@@ -39,7 +40,7 @@ public class FoodPlatterBlock extends BlockWithEntity {
 
     @Override
     public @Nullable BlockEntity createBlockEntity(BlockPos pos, BlockState state) {
-        return new FoodPlatterBlockEntity(TMMBlockEntities.FOOD_PLATTER, pos, state);
+        return new BeveragePlateBlockEntity(pos, state);
     }
 
     @Override
@@ -54,37 +55,40 @@ public class FoodPlatterBlock extends BlockWithEntity {
 
     @Override
     protected VoxelShape getOutlineShape(BlockState state, BlockView world, BlockPos pos, ShapeContext context) {
-        return getShape(state);
+        return this.getShape(state);
     }
 
     protected VoxelShape getShape(BlockState state) {
-        return Block.createCuboidShape(0, 0, 0, 16, 2, 16);
+        return createCuboidShape(0, 0, 0, 16, 2, 16);
     }
 
     @Override
-    protected ActionResult onUse(BlockState state, World world, BlockPos pos, PlayerEntity player, BlockHitResult hit) {
+    protected ActionResult onUse(BlockState state, @NotNull World world, BlockPos pos, PlayerEntity player, BlockHitResult hit) {
         if (world.isClient) return ActionResult.SUCCESS;
-
-        if (!(world.getBlockEntity(pos) instanceof FoodPlatterBlockEntity blockEntity)) {
-            return ActionResult.PASS;
-        }
+        if (!(world.getBlockEntity(pos) instanceof BeveragePlateBlockEntity blockEntity)) return ActionResult.PASS;
 
         if (player.isCreative()) {
-            ItemStack heldItem = player.getStackInHand(Hand.MAIN_HAND);
-
+            var heldItem = player.getStackInHand(Hand.MAIN_HAND);
             if (!heldItem.isEmpty()) {
                 blockEntity.addItem(heldItem);
                 return ActionResult.SUCCESS;
             }
-        } else if (player.getStackInHand(Hand.MAIN_HAND).isEmpty()) {
-            List<ItemStack> platter = blockEntity.getStoredItems();
+        }
+        if (player.getStackInHand(Hand.MAIN_HAND).isOf(TMMItems.POISON_VIAL)) {
+            blockEntity.setPoisoner(player.getUuidAsString());
+            player.getStackInHand(Hand.MAIN_HAND).decrement(1);
+            player.playSoundToPlayer(SoundEvents.BLOCK_BREWING_STAND_BREW, SoundCategory.BLOCKS, 0.5f, 1f);
+            return ActionResult.SUCCESS;
+        }
+        if (player.getStackInHand(Hand.MAIN_HAND).isEmpty()) {
+            var platter = blockEntity.getStoredItems();
             if (platter.isEmpty()) return ActionResult.SUCCESS;
 
-            boolean hasPlatterItem = false;
-            for (ItemStack platterItem : platter) {
-                for (int i = 0; i < player.getInventory().size(); i++) {
-                    ItemStack invItem = player.getInventory().getStack(i);
 
+            var hasPlatterItem = false;
+            for (var platterItem : platter) {
+                for (var i = 0; i < player.getInventory().size(); i++) {
+                    var invItem = player.getInventory().getStack(i);
                     if (invItem.getItem() == platterItem.getItem()) {
                         hasPlatterItem = true;
                         break;
@@ -94,34 +98,25 @@ public class FoodPlatterBlock extends BlockWithEntity {
             }
 
             if (!hasPlatterItem) {
-                ItemStack randomItem = platter.get(world.random.nextInt(platter.size())).copy();
+                var randomItem = platter.get(world.random.nextInt(platter.size())).copy();
                 randomItem.setCount(1);
                 randomItem.set(DataComponentTypes.MAX_STACK_SIZE, 1);
-
-                if (blockEntity.getPoisonedItemsCount() > 0) {
-                    randomItem.set(TMMDataComponentTypes.POISONED, true);
-                    randomItem.set(TMMDataComponentTypes.POISONER, player.getUuidAsString());
-                    blockEntity.setPoisonedItemsCount(blockEntity.getPoisonedItemsCount() - 1);
+                var poisoner = blockEntity.getPoisoner();
+                if (poisoner != null) {
+                    randomItem.set(TMMDataComponentTypes.POISONER, poisoner);
+                    blockEntity.setPoisoner(null);
                 }
-
                 player.playSoundToPlayer(SoundEvents.ENTITY_ITEM_PICKUP, SoundCategory.BLOCKS, 1f, 1f);
                 player.setStackInHand(Hand.MAIN_HAND, randomItem);
             }
-        }
-        if (player.getStackInHand(Hand.MAIN_HAND).isOf(TMMItems.POISON_VIAL)) {
-            blockEntity.setPoisonedItemsCount(blockEntity.getPoisonedItemsCount() + 1);
-            player.getStackInHand(Hand.MAIN_HAND).decrement(1);
-            player.playSoundToPlayer(SoundEvents.BLOCK_BREWING_STAND_BREW, SoundCategory.BLOCKS, 0.5f, 1f);
         }
 
         return ActionResult.PASS;
     }
 
     @Override
-    public @Nullable <T extends BlockEntity> BlockEntityTicker<T> getTicker(World world, BlockState state, BlockEntityType<T> type) {
-        if (!world.isClient || !type.equals(TMMBlockEntities.FOOD_PLATTER)) {
-            return null;
-        }
-        return FoodPlatterBlockEntity::clientTick;
+    public @Nullable <T extends BlockEntity> BlockEntityTicker<T> getTicker(@NotNull World world, BlockState state, BlockEntityType<T> type) {
+        if (!world.isClient || !type.equals(TMMBlockEntities.BEVERAGE_PLATE)) return null;
+        return BeveragePlateBlockEntity::clientTick;
     }
 }
