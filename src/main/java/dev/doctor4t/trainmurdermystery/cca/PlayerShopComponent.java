@@ -75,7 +75,7 @@ public class PlayerShopComponent implements AutoSyncedComponent, ServerTickingCo
         return WorldBlackoutComponent.KEY.get(player.getWorld()).triggerBlackout();
     }
 
-    public static boolean usePsychoMode(PlayerEntity player) {
+    public static boolean usePsychoMode(@NotNull PlayerEntity player) {
         player.getItemCooldownManager().set(TMMItems.PSYCHO_MODE, GameConstants.ITEM_COOLDOWNS.getOrDefault(TMMItems.PSYCHO_MODE, 0));
         return PlayerPsychoComponent.KEY.get(player).startPsycho();
     }
