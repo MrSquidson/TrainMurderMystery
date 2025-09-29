@@ -235,7 +235,11 @@ public class GameFunctions {
     }
 
     public static void killPlayer(PlayerEntity victim, boolean spawnBody, @Nullable PlayerEntity killer) {
-        if (victim instanceof ServerPlayerEntity serverPlayerEntity) serverPlayerEntity.changeGameMode(GameMode.SPECTATOR);
+        if (victim instanceof ServerPlayerEntity serverPlayerEntity && GameFunctions.isPlayerAliveAndSurvival(serverPlayerEntity)) {
+            serverPlayerEntity.changeGameMode(GameMode.SPECTATOR);
+        } else {
+            return;
+        }
 
         if (killer != null) {
             PlayerShopComponent.KEY.get(killer).addToBalance(GameConstants.MONEY_PER_KILL);
