@@ -38,10 +38,11 @@ public class ScoreboardRoleSelectorComponent implements AutoSyncedComponent {
     }
 
     public void assignKillers(ServerWorld world, GameWorldComponent gameComponent, @NotNull List<ServerPlayerEntity> players, int killerCount) {
+        this.reduceKillers();
         var map = new HashMap<ServerPlayerEntity, Float>();
         var total = 0f;
         for (var player : players) {
-            var weight = 1f / this.killerRounds.getOrDefault(player.getUuid(), 1);
+            var weight = (float) Math.exp(-this.killerRounds.getOrDefault(player.getUuid(), 0) * 4);
             map.put(player, weight);
             total += weight;
         }
@@ -63,12 +64,19 @@ public class ScoreboardRoleSelectorComponent implements AutoSyncedComponent {
 //        if (FabricLoader.getInstance().isDevelopmentEnvironment()) gameComponent.addKiller(UUID.fromString("2793cdc6-7710-4e7e-9d81-cf918e067729"));
     }
 
+    private void reduceKillers() {
+        var minimum = Integer.MAX_VALUE;
+        for (var times : this.killerRounds.values()) minimum = Math.min(minimum, times);
+        for (var times : this.killerRounds.keySet()) this.killerRounds.put(times, this.killerRounds.get(times) - minimum);
+    }
+
     public void assignVigilantes(ServerWorld world, GameWorldComponent gameComponent, @NotNull List<ServerPlayerEntity> players, int killerCount) {
+        this.reduceVigilantes();
         var map = new HashMap<ServerPlayerEntity, Float>();
         var total = 0f;
         for (var player : players) {
             if (gameComponent.isKiller(player)) continue;
-            var weight = 1f / this.vigilanteRounds.getOrDefault(player.getUuid(), 1);
+            var weight = (float) Math.exp(-this.vigilanteRounds.getOrDefault(player.getUuid(), 0) * 4);
             map.put(player, weight);
             total += weight;
         }
@@ -90,6 +98,12 @@ public class ScoreboardRoleSelectorComponent implements AutoSyncedComponent {
             player.giveItemStack(new ItemStack(TMMItems.REVOLVER));
             gameComponent.addVigilante(player);
         }
+    }
+
+    private void reduceVigilantes() {
+        var minimum = Integer.MAX_VALUE;
+        for (var times : this.vigilanteRounds.values()) minimum = Math.min(minimum, times);
+        for (var times : this.vigilanteRounds.keySet()) this.vigilanteRounds.put(times, this.vigilanteRounds.get(times) - minimum);
     }
 
     @Override
