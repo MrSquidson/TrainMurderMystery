@@ -452,18 +452,6 @@ public class GameFunctions {
                     }
                 }
 
-                if (mode == Mode.MOVE) {
-                    for (BlockPos blockPos8 : deque) {
-                        BlockEntity blockEntity2 = serverWorld.getBlockEntity(blockPos8);
-                        Clearable.clear(blockEntity2);
-                        serverWorld.setBlockState(blockPos8, Blocks.BARRIER.getDefaultState(), Block.NOTIFY_LISTENERS);
-                    }
-
-                    for (BlockPos blockPos8 : deque) {
-                        serverWorld.setBlockState(blockPos8, Blocks.AIR.getDefaultState(), Block.NOTIFY_ALL);
-                    }
-                }
-
                 List<BlockInfo> list4 = Lists.newArrayList();
                 list4.addAll(list);
                 list4.addAll(list2);

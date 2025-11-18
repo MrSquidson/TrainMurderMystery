@@ -11,6 +11,7 @@ import net.minecraft.nbt.NbtList;
 import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.text.Text;
 import net.minecraft.util.StringIdentifiable;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.World;
@@ -28,6 +29,8 @@ import java.util.UUID;
 public class GameWorldComponent implements AutoSyncedComponent, ClientTickingComponent, ServerTickingComponent {
     public static final ComponentKey<GameWorldComponent> KEY = ComponentRegistry.getOrCreate(TMM.id("game"), GameWorldComponent.class);
     private final World world;
+
+    private boolean lockedToSupporters = false;
 
     public enum GameStatus {
         INACTIVE, STARTING, ACTIVE, STOPPING
@@ -193,10 +196,15 @@ public class GameWorldComponent implements AutoSyncedComponent, ClientTickingCom
         this.sync();
     }
 
+    public void setLockedToSupporters(boolean lockedToSupporters) {
+        this.lockedToSupporters = lockedToSupporters;
+    }
+
     @Override
     public void readFromNbt(@NotNull NbtCompound nbtCompound, RegistryWrapper.WrapperLookup wrapperLookup) {
-        this.setGameMode(GameMode.valueOf(nbtCompound.getString("GameMode")));
+        this.setLockedToSupporters(nbtCompound.getBoolean("LockedToSupporters"));
 
+        this.setGameMode(GameMode.valueOf(nbtCompound.getString("GameMode")));
         this.setGameStatus(GameStatus.valueOf(nbtCompound.getString("GameStatus")));
 
         this.setFade(nbtCompound.getInt("Fade"));
@@ -222,8 +230,9 @@ public class GameWorldComponent implements AutoSyncedComponent, ClientTickingCom
 
     @Override
     public void writeToNbt(@NotNull NbtCompound nbtCompound, RegistryWrapper.WrapperLookup wrapperLookup) {
-        nbtCompound.putString("GameMode", gameMode.name());
+        nbtCompound.putBoolean("LockedToSupporters", lockedToSupporters);
 
+        nbtCompound.putString("GameMode", gameMode.name());
         nbtCompound.putString("GameStatus", this.gameStatus.toString());
 
         nbtCompound.putInt("Fade", fade);
@@ -259,6 +268,17 @@ public class GameWorldComponent implements AutoSyncedComponent, ClientTickingCom
         }
 
         ServerWorld serverWorld = (ServerWorld) this.world;
+
+        // if not running and spectators respawn them
+        for (ServerPlayerEntity player : serverWorld.getPlayers()) {
+            if (player.isSpectator() && !isRunning()) {
+                GameFunctions.resetPlayer(player);
+            }
+
+            if (lockedToSupporters && !TMM.isSupporter(player)) {
+                player.networkHandler.disconnect(Text.literal("Server is reserved to doctor4t supporters."));
+            }
+        }
 
         if (serverWorld.getServer().getOverworld().equals(serverWorld)) {
             TrainWorldComponent trainComponent = TrainWorldComponent.KEY.get(serverWorld);
@@ -340,13 +360,6 @@ public class GameWorldComponent implements AutoSyncedComponent, ClientTickingCom
                         if (winStatus == GameFunctions.WinStatus.TIME && this.isKiller(player)) GameFunctions.killPlayer(player, true, null);
                     }
                     GameFunctions.stopGame(serverWorld);
-                }
-            } else {
-                // if not running and spectators respawn them
-                for (ServerPlayerEntity player : serverWorld.getPlayers()) {
-                    if (player.isSpectator()) {
-                        GameFunctions.resetPlayer(player);
-                    }
                 }
             }
         }

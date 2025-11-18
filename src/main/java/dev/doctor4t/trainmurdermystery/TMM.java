@@ -16,6 +16,7 @@ import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.command.argument.serialize.ConstantArgumentSerializer;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
@@ -118,14 +119,18 @@ public class TMM implements ModInitializer {
         ServerPlayerEntity player = source.getPlayer();
         if (player == null) return 0;
 
-        Optional<Entitlements> entitlements = Entitlements.token().get(player.getUuid());
-        if (entitlements.map(value -> value.keys().stream().anyMatch(identifier -> identifier.equals(COMMAND_ACCESS))).orElse(false)) {
+        if (isSupporter(player)) {
             runnable.run();
             return 1;
         } else {
             player.sendMessage(Text.translatable("commands.supporter_only"));
             return 0;
         }
+    }
+
+    public static @NotNull Boolean isSupporter(PlayerEntity player) {
+        Optional<Entitlements> entitlements = Entitlements.token().get(player.getUuid());
+        return entitlements.map(value -> value.keys().stream().anyMatch(identifier -> identifier.equals(COMMAND_ACCESS))).orElse(false);
     }
 }
 
