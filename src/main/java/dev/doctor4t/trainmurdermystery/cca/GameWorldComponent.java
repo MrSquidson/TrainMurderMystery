@@ -14,6 +14,7 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.util.StringIdentifiable;
 import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.NotNull;
 import org.ladysnake.cca.api.v3.component.ComponentKey;
@@ -26,7 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-public class GameWorldComponent implements AutoSyncedComponent, ClientTickingComponent, ServerTickingComponent {
+public class GameWorldComponent implements AutoSyncedComponent, ServerTickingComponent {
     public static final ComponentKey<GameWorldComponent> KEY = ComponentRegistry.getOrCreate(TMM.id("game"), GameWorldComponent.class);
     private final World world;
 
@@ -253,13 +254,22 @@ public class GameWorldComponent implements AutoSyncedComponent, ClientTickingCom
     }
 
     @Override
-    public void clientTick() {
-        tickCommon();
-    }
-
-    @Override
     public void serverTick() {
-        tickCommon();
+        // fade and start / stop game
+        if (this.getGameStatus() == GameStatus.STARTING || this.getGameStatus() == GameStatus.STOPPING) {
+            this.setFade(fade + 1);
+
+            if (this.getFade() >= GameConstants.FADE_TIME + GameConstants.FADE_PAUSE) {
+                if (world instanceof ServerWorld serverWorld) {
+                    if (this.getGameStatus() == GameStatus.STARTING)
+                        GameFunctions.initializeGame(serverWorld);
+                    if (this.getGameStatus() == GameStatus.STOPPING)
+                        GameFunctions.finalizeGame(serverWorld);
+                }
+            }
+        } else if (this.getGameStatus() == GameStatus.ACTIVE || this.getGameStatus() == GameStatus.INACTIVE) {
+            this.setFade(fade - 1);
+        }
 
         if (ticksUntilNextResetAttempt-- == 0) {
             if (GameFunctions.tryResetTrain((ServerWorld) this.world)) {
@@ -269,14 +279,17 @@ public class GameWorldComponent implements AutoSyncedComponent, ClientTickingCom
 
         ServerWorld serverWorld = (ServerWorld) this.world;
 
-        // if not running and spectators respawn them
-        for (ServerPlayerEntity player : serverWorld.getPlayers()) {
-            if (player.isSpectator() && !isRunning()) {
-                GameFunctions.resetPlayer(player);
-            }
+        if (world.getTime() % 100 == 0) {
+            for (ServerPlayerEntity player : serverWorld.getPlayers()) {
+                // if not running and spectators or not in lobby reset them
+                if (!isRunning() && (player.isSpectator() || (GameFunctions.isPlayerAliveAndSurvival(player) && GameConstants.PLAY_AREA.contains(player.getPos())))) {
+                    GameFunctions.resetPlayer(player);
+                }
 
-            if (lockedToSupporters && !TMM.isSupporter(player)) {
-                player.networkHandler.disconnect(Text.literal("Server is reserved to doctor4t supporters."));
+                // server lock to supporters
+                if (lockedToSupporters && !TMM.isSupporter(player)) {
+                    player.networkHandler.disconnect(Text.literal("Server is reserved to doctor4t supporters."));
+                }
             }
         }
 
@@ -362,24 +375,6 @@ public class GameWorldComponent implements AutoSyncedComponent, ClientTickingCom
                     GameFunctions.stopGame(serverWorld);
                 }
             }
-        }
-    }
-
-    private void tickCommon() {
-        // fade and start / stop game
-        if (this.getGameStatus() == GameStatus.STARTING || this.getGameStatus() == GameStatus.STOPPING) {
-            this.setFade(fade + 1);
-
-            if (this.getFade() >= GameConstants.FADE_TIME + GameConstants.FADE_PAUSE) {
-                if (world instanceof ServerWorld serverWorld) {
-                    if (this.getGameStatus() == GameStatus.STARTING)
-                        GameFunctions.initializeGame(serverWorld);
-                    if (this.getGameStatus() == GameStatus.STOPPING)
-                        GameFunctions.finalizeGame(serverWorld);
-                }
-            }
-        } else if (this.getGameStatus() == GameStatus.ACTIVE || this.getGameStatus() == GameStatus.INACTIVE) {
-            this.setFade(fade - 1);
         }
     }
 
